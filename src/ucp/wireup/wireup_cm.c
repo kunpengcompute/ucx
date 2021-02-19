@@ -145,8 +145,8 @@ ucp_cm_ep_client_initial_config_get(ucp_ep_h ucp_ep, const char *dev_name,
     /* Construct local dummy address for lanes selection taking an assumption
      * that server has the transports which are the best from client's
      * perspective. */
-    status = ucp_address_pack(worker, NULL, &tl_bitmap, addr_pack_flags, NULL,
-                              &ucp_addr_size, &ucp_addr);
+    status = ucp_address_pack(worker, NULL, &tl_bitmap, 0, addr_pack_flags,
+                              NULL, &ucp_addr_size, &ucp_addr);
     if (status != UCS_OK) {
         goto out;
     }
@@ -167,7 +167,7 @@ ucp_cm_ep_client_initial_config_get(ucp_ep_h ucp_ep, const char *dev_name,
     ucp_ep_config_key_reset(key);
     ucp_ep_config_key_set_err_mode(key, wireup_ep->ep_init_flags);
     status = ucp_wireup_select_lanes(ucp_ep, wireup_ep->ep_init_flags,
-                                     tl_bitmap, &unpacked_addr, addr_indices,
+                                     tl_bitmap, 0, &unpacked_addr, addr_indices,
                                      key);
 
     ucs_free(unpacked_addr.address_list);
@@ -337,7 +337,7 @@ static ssize_t ucp_cm_client_priv_pack_cb(void *arg,
     ucp_ep_update_flags(cm_wireup_ep->tmp_ep, UCP_EP_FLAG_INTERNAL, 0);
     ucs_debug("ep %p: created tmp_ep %p", ep, cm_wireup_ep->tmp_ep);
 
-    status = ucp_worker_get_ep_config(worker, &key, 0,
+    status = ucp_worker_get_ep_config(worker, &key, NULL, 0, 0,
                                       &cm_wireup_ep->tmp_ep->cfg_index);
     if (status != UCS_OK) {
         goto out_check_err;
@@ -354,7 +354,7 @@ static ssize_t ucp_cm_client_priv_pack_cb(void *arg,
     /* Don't pack the device address to reduce address size, it will be
      * delivered by uct_cm_listener_conn_request_callback_t in
      * uct_cm_remote_data_t */
-    status = ucp_address_pack(worker, cm_wireup_ep->tmp_ep, &tl_bitmap,
+    status = ucp_address_pack(worker, cm_wireup_ep->tmp_ep, &tl_bitmap, 0,
                               UCP_ADDRESS_PACK_FLAGS_CM_DEFAULT, NULL,
                               &ucp_addr_size, &ucp_addr);
     if (status != UCS_OK) {
@@ -485,7 +485,7 @@ static unsigned ucp_cm_client_connect_progress(void *arg)
 
     tl_bitmap = ucp_context_dev_idx_tl_bitmap(context, dev_index);
     status    = ucp_wireup_init_lanes(tmp_ep, wireup_ep->ep_init_flags,
-                                      &tl_bitmap, &addr, addr_indices);
+                                      &tl_bitmap, 0, &addr, addr_indices);
     if (status != UCS_OK) {
         ucs_debug("ep %p: failed to initialize lanes: %s", ucp_ep,
                   ucs_status_string(status));
@@ -1035,7 +1035,7 @@ ucp_ep_cm_server_create_connected(ucp_worker_h worker, unsigned ep_init_flags,
     }
 
     /* Create and connect TL part */
-    status = ucp_ep_create_to_worker_addr(worker, &tl_bitmap, remote_addr,
+    status = ucp_ep_create_to_worker_addr(worker, &tl_bitmap, 0, remote_addr,
                                           ep_init_flags,
                                           "conn_request on uct_listener", &ep);
     if (status != UCS_OK) {
@@ -1119,7 +1119,7 @@ static ssize_t ucp_cm_server_priv_pack_cb(void *arg,
                                                          pack_args->dev_name)),
             UCP_MAX_RESOURCES));
 
-    status = ucp_address_pack(worker, ep, &tl_bitmap,
+    status = ucp_address_pack(worker, ep, &tl_bitmap, 0,
                               UCP_ADDRESS_PACK_FLAGS_CM_DEFAULT, NULL,
                               &ucp_addr_size, &ucp_addr);
     if (status != UCS_OK) {

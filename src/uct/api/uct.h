@@ -456,8 +456,8 @@ typedef enum uct_coll_dtype_mode {
 #define UCT_IFACE_FLAG_TAG_RNDV_ZCOPY  UCS_BIT(53) /**< Hardware tag matching rendezvous zcopy support */
 
         /* Collective (multi-peer) operations */
-#define UCT_IFACE_FLAG_BCAST           UCS_BIT(55) /**< one-to-many send operations */
-#define UCT_IFACE_FLAG_INCAST          UCS_BIT(56) /**< many-to-one send operations */
+#define UCT_IFACE_FLAG_INCAST          UCS_BIT(55) /**< many-to-one send operations */
+#define UCT_IFACE_FLAG_BCAST           UCS_BIT(56) /**< one-to-many send operations */
 
 /**
  * @}

@@ -339,7 +339,7 @@ ucs_status_t ucp_worker_create_mem_type_endpoints(ucp_worker_h worker)
         }
 
         status = ucp_address_pack(worker, NULL,
-                                  &context->mem_type_access_tls[mem_type],
+                                  &context->mem_type_access_tls[mem_type], 0,
                                   UCP_ADDRESS_PACK_FLAGS_WORKER_DEFAULT, NULL,
                                   &address_length, &address_buffer);
         if (status != UCS_OK) {
@@ -359,7 +359,7 @@ ucs_status_t ucp_worker_create_mem_type_endpoints(ucp_worker_h worker)
         /* create memtype UCP EPs after blocking async context, because they set
          * INTERNAL flag (setting EP flags is expected to be guarded) */
         UCS_ASYNC_BLOCK(&worker->async);
-        status = ucp_ep_create_to_worker_addr(worker, &ucp_tl_bitmap_max,
+        status = ucp_ep_create_to_worker_addr(worker, &ucp_tl_bitmap_max, 0,
                                               &local_address,
                                               UCP_EP_INIT_FLAG_MEM_TYPE,
                                               ep_name,
@@ -430,7 +430,7 @@ ucs_status_t ucp_ep_init_create_wireup(ucp_ep_h ep, unsigned ep_init_flags,
         key.wireup_msg_lane = 0;
     }
 
-    status = ucp_worker_get_ep_config(ep->worker, &key, 0, &ep->cfg_index);
+    status = ucp_worker_get_ep_config(ep->worker, &key, NULL, 0, 0, &ep->cfg_index);
     if (status != UCS_OK) {
         return status;
     }
@@ -452,6 +452,7 @@ ucs_status_t ucp_ep_init_create_wireup(ucp_ep_h ep, unsigned ep_init_flags,
 ucs_status_t
 ucp_ep_create_to_worker_addr(ucp_worker_h worker,
                              const ucp_tl_bitmap_t *local_tl_bitmap,
+                             unsigned iface_tl_base,
                              const ucp_unpacked_address_t *remote_address,
                              unsigned ep_init_flags, const char *message,
                              ucp_ep_h *ep_p)
@@ -469,12 +470,12 @@ ucp_ep_create_to_worker_addr(ucp_worker_h worker,
 
     /* initialize transport endpoints */
     status = ucp_wireup_init_lanes(ep, ep_init_flags, local_tl_bitmap,
-                                   remote_address, addr_indices);
+                                   iface_tl_base, remote_address, addr_indices);
     if (status != UCS_OK) {
         goto err_delete;
     }
 
-    ucs_assert(UCS_BITMAP_IS_ZERO(
+    ucs_assert((iface_tl_base != 0) || UCS_BITMAP_IS_ZERO(
         UCP_TL_BITMAP_AND_NOT(ucp_ep_get_tl_bitmap(ep),
                            *local_tl_bitmap),
             UCP_MAX_RESOURCES));
@@ -662,7 +663,7 @@ ucp_ep_create_api_to_worker_addr(ucp_worker_h worker,
         goto out_free_address;
     }
 
-    status = ucp_ep_create_to_worker_addr(worker, &ucp_tl_bitmap_max,
+    status = ucp_ep_create_to_worker_addr(worker, &ucp_tl_bitmap_max, 0,
                                           &remote_address,
                                           ucp_ep_init_flags(worker, params),
                                           "from api call", &ep);
@@ -1707,6 +1708,8 @@ static ucs_status_t ucp_ep_config_key_copy(ucp_ep_config_key_t *dst,
 }
 
 ucs_status_t ucp_ep_config_init(ucp_worker_h worker, ucp_ep_config_t *config,
+                                const ucp_tl_bitmap_t *local_tl_bitmap,
+                                unsigned iface_tl_base,
                                 const ucp_ep_config_key_t *key)
 {
     ucp_context_h context              = worker->context;
@@ -1788,7 +1791,12 @@ ucs_status_t ucp_ep_config_init(ucp_worker_h worker, ucp_ep_config_t *config,
 
     for (lane = 0; lane < config->key.num_lanes; ++lane) {
         rsc_index = config->key.lanes[lane].rsc_index;
+
         if (rsc_index != UCP_NULL_RESOURCE) {
+            if (rsc_index >= context->num_tls) {
+                rsc_index = worker->ifaces[rsc_index]->rsc_index;
+            }
+
             config->md_index[lane] = context->tl_rscs[rsc_index].md_index;
             if (ucp_ep_config_connect_p2p(worker, &config->key, rsc_index)) {
                 config->p2p_lanes |= UCS_BIT(lane);
@@ -2017,7 +2025,10 @@ ucs_status_t ucp_ep_config_init(ucp_worker_h worker, ucp_ep_config_t *config,
             continue;
         }
 
-        rsc_index  = config->key.lanes[lane].rsc_index;
+        rsc_index = config->key.lanes[lane].rsc_index;
+        if (rsc_index >= context->num_tls) {
+            rsc_index = worker->ifaces[rsc_index]->rsc_index;
+        }
 
         if (rsc_index != UCP_NULL_RESOURCE) {
             iface_attr = ucp_worker_iface_get_attr(worker, rsc_index);

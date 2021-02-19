@@ -107,6 +107,10 @@ UCS_CLASS_INIT_FUNC(uct_mm_ep_t, const uct_ep_params_t *params)
     UCT_EP_PARAMS_CHECK_DEV_IFACE_ADDRS(params);
     UCS_CLASS_CALL_SUPER_INIT(uct_base_ep_t, &iface->super.super);
 
+    if (addr->fifo_seg_id == 0) {
+        return UCS_OK;
+    }
+
     kh_init_inplace(uct_mm_remote_seg, &self->remote_segs);
     ucs_arbiter_group_init(&self->arb_group);
 
@@ -255,8 +259,8 @@ retry:
         elem_flags   = UCT_MM_FIFO_ELEM_FLAG_INLINE;
         elem->length = length + sizeof(header);
 
-        uct_mm_iface_trace_am(iface, UCT_AM_TRACE_TYPE_SEND, elem_flags, am_id,
-                              elem + 1, elem->length,
+        uct_mm_iface_trace_am(&iface->super, UCT_AM_TRACE_TYPE_SEND, elem_flags,
+                              am_id, elem + 1, elem->length,
                               head & ~UCT_MM_IFACE_FIFO_HEAD_EVENT_ARMED);
         UCT_TL_EP_STAT_OP(&ep->super, AM, SHORT, sizeof(header) + length);
         break;
@@ -274,8 +278,8 @@ retry:
         elem_flags   = 0;
         elem->length = length;
 
-        uct_mm_iface_trace_am(iface, UCT_AM_TRACE_TYPE_SEND, elem_flags, am_id,
-                              desc_data, elem->length,
+        uct_mm_iface_trace_am(&iface->super, UCT_AM_TRACE_TYPE_SEND, elem_flags,
+                              am_id, desc_data, elem->length,
                               head & ~UCT_MM_IFACE_FIFO_HEAD_EVENT_ARMED);
         UCT_TL_EP_STAT_OP(&ep->super, AM, BCOPY, length);
         break;
@@ -285,8 +289,8 @@ retry:
         elem->length = uct_iov_to_buffer(iov, iovcnt, &iov_iter, elem + 1,
                                          SIZE_MAX);
 
-        uct_mm_iface_trace_am(iface, UCT_AM_TRACE_TYPE_SEND, elem_flags, am_id,
-                              elem + 1, elem->length,
+        uct_mm_iface_trace_am(&iface->super, UCT_AM_TRACE_TYPE_SEND, elem_flags,
+                              am_id, elem + 1, elem->length,
                               head & ~UCT_MM_IFACE_FIFO_HEAD_EVENT_ARMED);
         UCT_TL_EP_STAT_OP(&ep->super, AM, SHORT, elem->length);
         break;

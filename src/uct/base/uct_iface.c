@@ -195,7 +195,7 @@ ucs_status_t uct_iface_estimate_perf(uct_iface_h iface, uct_perf_attr_t *perf_at
     }
 
     if (perf_attr->field_mask & UCT_PERF_ATTR_FIELD_OVERHEAD) {
-        perf_attr->overhead = iface_attr.overhead;
+        perf_attr->overhead = iface_attr.overhead_short;
     }
 
     return UCS_OK;

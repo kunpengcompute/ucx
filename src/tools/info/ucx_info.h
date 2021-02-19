@@ -59,7 +59,7 @@ print_ucp_info(int print_opts, ucs_config_print_flags_t print_flags,
                ucg_group_member_index_t my_index,
                const char *collective_type_name,
                size_t dtype_count,
-               ucg_group_member_index_t peer_count[UCG_GROUP_MEMBER_DISTANCE_LAST]
+               ucg_group_member_index_t peer_count[UCG_GROUP_MEMBER_DISTANCE_UNKNOWN]
 #endif
                );
 

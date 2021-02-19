@@ -328,7 +328,7 @@ print_ucp_info(int print_opts, ucs_config_print_flags_t print_flags,
                ucg_group_member_index_t my_index,
                const char *collective_type_name,
                size_t dtype_count,
-               ucg_group_member_index_t peer_count[UCG_GROUP_MEMBER_DISTANCE_LAST]
+               ucg_group_member_index_t peer_count[UCG_GROUP_MEMBER_DISTANCE_UNKNOWN]
 #endif
                )
 {
@@ -381,7 +381,7 @@ print_ucp_info(int print_opts, ucs_config_print_flags_t print_flags,
     ucg_params.address.release_f = dummy_release_address;
 
     /* Not a real callbacks, but good enough for these tests */
-    ucg_params.datatype.convert             = datatype_test_converter;
+    ucg_params.datatype.convert_f           = datatype_test_converter;
     ucg_params.datatype.is_integer_f        = datatype_test_dt_is_int;
     ucg_params.datatype.is_floating_point_f = datatype_test_dt_is_fp;
     ucg_params.reduce_op.is_sum_f           = datatype_test_op_is_sum;
@@ -433,7 +433,7 @@ print_ucp_info(int print_opts, ucs_config_print_flags_t print_flags,
 #if ENABLE_UCG
     if (print_opts & PRINT_UCG) {
         /* create a group with the generated parameters */
-        enum ucg_group_member_distance distance = UCG_GROUP_MEMBER_DISTANCE_SELF;
+        enum ucg_group_member_distance distance = UCG_GROUP_MEMBER_DISTANCE_NONE;
         ucg_group_params_t group_params = {
                 .field_mask        = UCG_GROUP_PARAM_FIELD_MEMBER_COUNT |
                                      UCG_GROUP_PARAM_FIELD_MEMBER_INDEX |
@@ -469,6 +469,7 @@ print_ucp_info(int print_opts, ucs_config_print_flags_t print_flags,
         status = print_ucp_ep_info(worker, base_ep_params, ip_addr);
     }
 
+out_destroy_worker:
     ucp_worker_destroy(worker);
 
 out_cleanup_context:
